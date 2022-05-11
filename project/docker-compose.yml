@@ -1,0 +1,101 @@
+version: "3.8"
+
+services:
+  seq:
+    image: datalust/seq
+    restart: unless-stopped
+    environment:
+      - ACCEPT_EULA=Y
+    volumes:
+      - seq-data:/data
+    ports:
+      - 4000:80
+
+  healthchecks:
+    build: ./HealthChecks
+    ports:
+      - 4100:80
+    restart: unless-stopped
+    depends_on:
+      - healthchecks-mssql
+
+  healthchecks-mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    ports:
+      - 4200:1433
+    volumes:
+      - healthchecks-mssql-data:/var/lib/mssql/data
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "HealthChecks_SApwd1433*"
+
+  rabbitmq:
+    image: rabbitmq:3.9.10-management-alpine
+    ports:
+      - 4300:5672
+      - 4400:15672
+    restart: on-failure
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "15672" ]
+      interval: 1m
+      timeout: 30s
+      retries: 5
+
+  identity-mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    ports:
+      - 5100:1433
+    volumes:
+      - identity-data:/var/lib/mssql/data
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Identity_SApwd1433*"
+
+  identity:
+    build: ./IdentityService/src
+    ports:
+      - 5110:80
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+      - identity-mssql
+
+  organism-mongodb:
+    image: mongo
+    ports:
+      - 5200:27017
+    volumes:
+      - organism-mongodb-data:/data/db
+
+  organism:
+    build: ./OrganismService/src
+    ports:
+      - 5220:80
+    restart: unless-stopped
+    depends_on:
+      - organism-mongodb
+      - rabbitmq
+    volumes:
+      - ./OrganismService/src/Organism.Web/wwwroot:/app/wwwroot
+
+  species-wiki:
+    build: ./client/
+    ports:
+      - 3000:80
+    restart: on-failure
+    environment:
+      - PORT=80
+
+  image-search:
+    build: ./image_search
+    ports:
+      - 5300:80
+    restart: unless-stopped
+    environment:
+      APP_ENV: "production"
+
+volumes:
+  seq-data:
+  healthchecks-mssql-data:
+  identity-data:
+  organism-mongodb-data:
