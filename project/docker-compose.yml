@@ -12,7 +12,7 @@ services:
       - 4000:80
 
   healthchecks:
-    build: ./HealthChecks
+    image: thanhb1805916/project_healthchecks
     ports:
       - 4100:80
     restart: unless-stopped
@@ -52,7 +52,7 @@ services:
       SA_PASSWORD: "Identity_SApwd1433*"
 
   identity:
-    build: ./IdentityService/src
+    image: thanhb1805916/project_identity
     ports:
       - 5110:80
     restart: unless-stopped
@@ -68,7 +68,7 @@ services:
       - organism-mongodb-data:/data/db
 
   organism:
-    build: ./OrganismService/src
+    image: thanhb1805916/project_organism
     ports:
       - 5220:80
     restart: unless-stopped
@@ -76,10 +76,10 @@ services:
       - organism-mongodb
       - rabbitmq
     volumes:
-      - ./OrganismService/src/Organism.Web/wwwroot:/app/wwwroot
+      - organism-data:/app/wwwroot
 
   species-wiki:
-    build: ./client/
+    image: thanhb1805916/project_species-wiki
     ports:
       - 3000:80
     restart: on-failure
@@ -87,7 +87,7 @@ services:
       - PORT=80
 
   image-search:
-    build: ./image_search
+    image: thanhb1805916/project_image-search
     ports:
       - 5300:80
     restart: unless-stopped
@@ -98,4 +98,5 @@ volumes:
   seq-data:
   healthchecks-mssql-data:
   identity-data:
+  organism-data:
   organism-mongodb-data:
